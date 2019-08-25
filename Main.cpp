@@ -11,7 +11,8 @@ struct ConcentratedEffect
     double thickness = 10;
     
 private:
-    Array<double> angles;
+    
+    Array<Triangle> m_triangles;
     
 public:
     
@@ -20,17 +21,18 @@ public:
         , outershape(_outershape)
     {
         linenum = 60;
-        angles.resize(linenum);
         
         Generate();
     }
+   
     
-    ConcentratedEffect(const InnerShape& _innershape)
-        : innershape(_innershape)
-        , outershape(Rect(0, 0, Scene::Size()))
-    {
-        Generate();
-    }
+    //outershapeを指定しない場合は画面をカバーするように自動設定する
+//    ConcentratedEffect(const InnerShape& _innershape)
+//        : innershape(_innershape)
+//        , outershape(Rect(0, 0, Scene::Size()))
+//    {
+//        Generate();
+//    }
     
     static Ellipse::position_type GetPointOnLine(const Ellipse& ellipse, double angle)
     {
@@ -46,37 +48,34 @@ public:
         
     }
     
-    //集中線を設定する
+    //集中線を生成する
     void Generate()
     {
-        angles.resize(linenum);
+        m_triangles.clear();
+        m_triangles.reserve(linenum);
         
-        for(auto& angle : angles)
+        for(int i : step(linenum))
         {
-            angle = Random(Math::Pi * 2);
+            double angle = Random(2 * Math::Pi);
+            
+            auto inner = GetPointOnLine(innershape, angle);
+            auto outer = GetPointOnLine(outershape, angle);
+
+            auto shifted_angle = angle - Math::Pi/2;
+            auto outerleft = outer.movedBy(cos(shifted_angle) * thickness, sin(shifted_angle) * thickness);
+            
+            shifted_angle = angle + Math::Pi/2;
+            auto outerright = outer.movedBy(cos(shifted_angle) * thickness, sin(shifted_angle) * thickness);
+            
+            m_triangles.emplace_back(inner, outerleft, outerright);
         }
     }
     
     void draw(const Color& color) const
     {
-        //leftとrightは中心から見た時に左か右か
-        Vec2 inner,outer,outerleft,outerright;
-        double shifted_angle;
-        
-        for(auto angle : angles)
+        for(const auto& triangle : m_triangles)
         {
-            //中心側の点
-            inner = GetPointOnLine(innershape, angle);
-            outer = GetPointOnLine(outershape, angle);
-            
-            //innerとouterの線分からThicknessの半分ずらした外側の点2つ
-            shifted_angle = angle - Math::Pi/2;
-            outerleft = outer.movedBy(cos(shifted_angle) * thickness, sin(shifted_angle) * thickness);
-            
-            shifted_angle = angle + Math::Pi/2;
-            outerright = outer.movedBy(cos(shifted_angle) * thickness, sin(shifted_angle) * thickness);
-            
-            Triangle(inner, outerleft, outerright).draw(color);
+            triangle.draw(color);
         }
     }
 };
