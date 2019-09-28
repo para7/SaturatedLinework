@@ -84,10 +84,10 @@ public:
     int linenum = 60;
     
     //線の太さ 中心からの角度
-    double thicknessangle = 0.01;
+    double thickness = 8;
     
     //太さのランダム幅
-    double thickrandomness = 0.003;
+    double thickrandomness = 0.1;
     
     //出現位置のランダム幅
     double posrandomness = 0;
@@ -104,13 +104,13 @@ public:
     {
         Generate();
     }
-//    
-//    ConcentratedEffect(const InnerShape& _innershape, const OuterShape& _outershape)
-//    : innershape(_innershape)
-//    , outershape(_outershape)
-//    {
-//        (Vec2(Scene::Size()) / 2, Vec2(Scene::Size()) * sqrt(2.0));
-//    }
+    //
+    //    ConcentratedEffect(const InnerShape& _innershape, const OuterShape& _outershape)
+    //    : innershape(_innershape)
+    //    , outershape(_outershape)
+    //    {
+    //        (Vec2(Scene::Size()) / 2, Vec2(Scene::Size()) * sqrt(2.0));
+    //    }
     
     
     //outershapeを指定しない場合は画面をカバーするように自動設定する
@@ -131,11 +131,27 @@ public:
         {
             const double angle = Random(2 * Math::Pi);
             
-            auto inner = GetPointOnLine(innershape, angle);
+            const auto inner = GetPointOnLine(innershape, angle);
             
-            auto outerleft = GetPointOnLine(outershape, angle + thicknessangle);
+            const auto outer = GetPointOnLine(outershape, angle);
             
-            auto outerright = GetPointOnLine(outershape, angle - thicknessangle);
+            //90度回す
+            const auto rotated = angle + (Math::Pi / 2);
+            
+            if(KeySpace.down())
+            {
+                Print(angle * 180.0 / Math::Pi);
+                Print(rotated * 180.0 / Math::Pi);
+            }
+            
+            Print(rotated * 180.0 / Math::Pi);
+            
+            //太さの分ずらすベクトル
+            auto outeroffset = Vec2(cos(rotated), -sin(rotated)) * (thickness / 2);
+            
+            const auto outerleft = outer + outeroffset;
+            
+            const auto outerright = outer - outeroffset;
             
             m_triangles.emplace_back(inner, outerleft, outerright);
         }
@@ -168,7 +184,6 @@ void Main()
     
     while(System::Update())
     {
-        
         font(U"集中線").drawAt(el.center, Palette::Black);
         
         effect.draw(Palette::Black);
