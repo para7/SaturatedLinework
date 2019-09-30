@@ -13,57 +13,6 @@ double AngleNormalize(double angle)
     return fmod(angle, Math::Pi * 2);
 }
 
-//Ellipseの線上の点を求める
-Ellipse::position_type GetPointOnLine(const Ellipse& ellipse, double angle)
-{
-    auto x = cos(angle);
-    auto y = -sin(angle);
-    
-    return Ellipse::position_type(x * ellipse.a, y * ellipse.b).moveBy(ellipse.center);
-}
-
-//Rectの線上の点を求める
-template <class T>
-static Vec2 GetPointOnLine(const Rectangle<T>& rect, double angle)
-{
-    constexpr auto pi4 = Math::Pi / 4;
-    
-    angle = AngleNormalize(angle);
-    
-    Line line;
-    
-    //辺を選択する
-    //ついでに角度を0~1/2πに正規化する
-    if(angle < pi4 || 7 * pi4 < angle)
-    {
-        line = rect.right();
-        angle += pi4;
-        angle = AngleNormalize(angle);
-    }
-    else if(angle < 3 * pi4)
-    {
-        line = rect.top();
-        angle -= pi4;
-    }
-    else if(angle < 5 * pi4)
-    {
-        line = rect.left();
-        angle -= pi4 * 3;
-    }
-    else
-    {
-        line = rect.bottom();
-        angle -= pi4 * 5;
-    }
-    
-    //角度をさらに0~1に正規化
-    const auto v = (angle * 2) / Math::Pi;
-    
-    //線形補間で座標を出す
-    return line.end.lerp(line.begin, v);
-}
-
-
 // 集中線クラス
 template <class InnerShape, class OuterShape = Rect>
 class ConcentratedEffect
@@ -79,13 +28,13 @@ public:
     int linenum = 60;
     
     //線の太さ 中心からの角度
-    double thickness = 6;
+    double thickness = 10;
     
     //太さのランダム幅
-    double thickrandomness = 0;
+    double thickrandomness = 7;
     
     //出現位置のランダム幅
-//    double posrandomness = 100;
+    double posrandomness = 50;
     
 private:
     
@@ -98,40 +47,53 @@ public:
     {
         m_triangles.clear();
         m_triangles.reserve(linenum);
-     
-        if(!outershape.contains(innershape))
-        {
-            Print(U"error");
-            return;
-            //エラー処理
-        }
+
+        //内部の図形の方が外部の図形より大きい場合はエラー
+//        if(!outershape.contains(innershape))
+//        {
+//            Print(U"error");
+//            return;
+//            //エラー処理
+//        }
+        
+        //交差座標取得用
+        OffsetCircular3 cir;
+        //半径を長く取る
+        cir.r = 1000000;
         
         for(int i : step(linenum))
         {
-            //角度を作成
-            const double angle = Random(2 * Math::Pi);
+            //極座標を初期化
+            double angle = Random(2 * Math::Pi);
+            cir.theta = angle;
+            
+            cir.setCenter(innershape.center);
+            Line line(cir.center, cir);
             
             //内側の座標
             //まずはランダム性を持たせる
             //const auto is = innershape.stretched(Random(posrandomness));
             //const auto inner = GetPointOnLine(is, angle);
             
-            const auto inner = GetPointOnLine(innershape, angle);
+            //InnerShapeの中心から線を始めているので、intersectsAtの存在判定は不要
+            const Vec2 inner = innershape.intersectsAt(line).value().front();
             
             //外側の座標を計算する
-            const auto outer = GetPointOnLine(outershape, angle);
+            //こっちは存在判定が必要だが、outershapeがinnershapeを内包しているかどうかで判定すべきである
+            //ただしEllipse.contains()はないのでどうするか
+            const auto outer = outershape.intersectsAt(line).value().front();
             
             //90度回す
             const auto rotated = angle + (Math::Pi / 2);
             
             //太さの分ずらすベクトルを作成
-            const auto r = ( (thickness + Random(thickrandomness)) / 2);
-            const Vec2 v(cos(rotated), -sin(rotated));
-            const auto outeroffset = v * r;
+            const double r = ( (thickness + Random(thickrandomness)) / 2);
+            const Vec2 v(cos(rotated), sin(rotated));
+            const Vec2 outeroffset = v * r;
             
             //ずらした座標を作る
-            const auto outerleft = outer + outeroffset;
-            const auto outerright = outer - outeroffset;
+            const Vec2 outerleft = outer + outeroffset;
+            const Vec2 outerright = outer - outeroffset;
             
             //Triangleの座標として登録
             m_triangles.emplace_back(inner, outerleft, outerright);
@@ -166,12 +128,12 @@ void Main()
 {
     Window::Resize(1280, 720);
     
-    Ellipse el(200, 500, 200, 100);
-//    Ellipse el2(400, 350, 100*3, 50*3);
+    Ellipse el(200, 500, 300, 100);
+    Ellipse el2 = el.stretched(800);
     
-    ConcentratedEffect effect(el);
+    ConcentratedEffect effect(el, el2);
     
-    Scene::SetBackground(HSV(0, 0, 0.9));
+    Scene::SetBackground(HSV(0, 0, 0.93));
     
     Font font(90, Typeface::Default, FontStyle::BoldItalic);
     
