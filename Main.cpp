@@ -5,9 +5,11 @@
 //角度の正規化 0~2π
 double AngleNormalize(double angle)
 {
+    //負だったら正の値にする
+    //modを取るので大きめの値
     while(angle < 0)
     {
-        angle += Math::Pi * 2;
+        angle += Math::Pi * 2 * 10000;
     }
     
     return fmod(angle, Math::Pi * 2);
@@ -66,10 +68,12 @@ public: //func
         //        if(!outershape.contains(innershape))
         //        {
         //            Print(U"error");
-        //            return;
+        //            return
         //            //エラー処理
         //        }
+        // Ellipseのcontainsがないので動かない。将来的にコメントアウトを外せるようになるかもしれない。
         
+        //
         m_triangles.clear();
         m_triangles.reserve(linenum);
 
@@ -94,9 +98,14 @@ public: //func
             const Vec2 inner = is.intersectsAt(line).value().front();
             
             //外側の中心(基準)となる座標を計算する
-            //こっちは存在しない可能性があるが、 outershape が innershape を内包しているかどうかで判定すべきである
-            //ただしEllipse.contains()はないのでどうするか
-            const auto outer = outershape.intersectsAt(line).value().front();
+            //こっちは存在しない可能性があるので存在してなかったらスキップする
+            const auto inter = outershape.intersectsAt(line);
+            if(inter)
+            {
+                continue;
+            }
+            
+            const auto outer = inter.value().front();
             
             //こっちも極座標にしようとしたら座標計算ミスしまくったのでとりあえずこのままで
             
