@@ -10,7 +10,7 @@ double AngleNormalize(double angle)
 }
 
 // 集中線クラス
-template <class InnerShape, class OuterShape = Rect>
+template <class InnerShape = Ellipse, class OuterShape = Rect>
 class ConcentratedEffect
 {
 public:
@@ -38,6 +38,21 @@ private:
     
 public: //constructor
     
+    ConcentratedEffect(){};
+    
+    //outershapeを指定しない場合は画面をカバーするように自動設定する
+    //端の方が見えてしまうので画面より少し大きく
+    ConcentratedEffect(const InnerShape& _innershape)
+    : innershape(_innershape)
+    , outershape(Rect(0, 0, Scene::Size()).stretched(30, 30))
+    {
+        Generate();
+    }
+    
+    //外側の図形を指定するタイプ
+    //実装上、端の方が汚くなってしまっているので使う場面はないかも
+    //前に作っていた角度で太さを指定する方法だと端を図形ぴったりで生成できたのですが
+    //とても指定しづらいですし、大問題が起きたので没です
     ConcentratedEffect(const InnerShape& _innershape, const OuterShape& _outershape)
     : innershape(_innershape)
     , outershape(_outershape)
@@ -45,35 +60,50 @@ public: //constructor
         Generate();
     }
     
-    //outershapeを指定しない場合は画面をカバーするように自動設定する
-    ConcentratedEffect(const InnerShape& _innershape)
-    : innershape(_innershape)
-    , outershape(Rect(0, 0, Scene::Size()).stretched(20, 20))
+private:
+    
+    //図形によってcenter()とcenterで異なるのでこれで吸収する
+    template < typename T >
+    static auto GetCenter(const T& x) -> decltype(x.center())
     {
-        Generate();
+        return x.center();
     }
+    
+    template < typename T >
+    static auto GetCenter(const T& x) -> decltype(x.center)
+    {
+        return x.center;
+    }
+    
     
 public: //func
     
+    
+    //追加機能案：お気に入りの集中線をいつでも作れるよう、
+    //乱数の初期値を受け取るようにしたりしてもいいかもしれない。
     //集中線を生成する
     void Generate()
     {
-        //内部の図形の方が外部の図形より大きい場合はエラー
+        //内部の図形が外部の図形に包まれてない場合はエラー
         //        if(!outershape.contains(innershape))
         //        {
         //            Print(U"error");
         //            return
         //            //エラー処理
         //        }
-        // Ellipseのcontainsがないので動かない。将来的にコメントアウトを外せるようになるかもしれない。
+        // Ellipseのcontains等がないので動かない
+        // 将来的にコメントアウトを外せるようになるかもしれませんね
         
-        //
+        //最初に配列をリセットする
         m_triangles.clear();
         m_triangles.reserve(linenum);
-
+        
+        //集中線の位置は実際に線を置いてみて座標を生成します。
         //交差座標取得用
         OffsetCircular3 cir;
         //半径を長く取る
+        //画面より大きければよほどのことがない限り平気なはず
+        //もうちょっと意味のある値にしたいところだが、オーバーフローも警戒しないといけない。
         cir.r = 1000000;
         
         for(int i : step(linenum))
@@ -81,28 +111,46 @@ public: //func
             //極座標を初期化
             double angle = Random(2 * Math::Pi);
             cir.theta = angle;
+            cir.setCenter(GetCenter(innershape));
             
-            cir.setCenter(innershape.center);
+            //中心線を作る
             Line line(cir.center, cir);
             
             //内側の座標
-            //まずはランダム性を持たせる
+            //まずは位置にランダム性を持たせる
             const auto is = innershape.stretched(Random(posrandomness));
-            //InnerShapeの中心から線を始めているので、intersectsAtの存在判定は不要
-            const Vec2 inner = is.intersectsAt(line).value().front();
+            //InnerShapeの中心から線を始めているので絶対交差すると言いたかったが
+            //図形があまりにも大きいと交差しないので例外を吐かないよう判定をとっておく
             
-            //外側の中心(基準)となる座標を計算する
-            //こっちは存在しない可能性があるので存在してなかったらスキップする
-            const auto inter = outershape.intersectsAt(line);
-            if(inter)
+            const auto innerintersects = is.intersectsAt(line);
+            
+            if(!innerintersects)
             {
                 continue;
             }
             
-            const auto outer = inter.value().front();
+            //内側は太さは必要ないので中心線の座標をそのまま使用
+            const Vec2 inner = innerintersects.value().front();
             
-            //こっちも極座標にしようとしたら座標計算ミスしまくったのでとりあえずこのままで
+            //外側の中心(基準)となる座標を計算する
+            const auto outerintersects = outershape.intersectsAt(line);
             
+            //交差してなかったらエラー
+            if(!outerintersects)
+            {
+                continue;
+                //エラーを吸って無理やり続行する仕様になっており
+                //なぜ集中線が生成されなかったのか？がわかりづらいので
+                //例外等でお知らせしてもよいと思う
+                //そのあたりの仕様はOpenSiv3D内で規則のようなものがあると思ったので
+                //手をつけていません。
+            }
+            
+            //外側の図形がとんでもない位置にあった場合は
+            //2箇所以上交差する可能性があるが、その処理は現段階では作っていない。
+            const auto outer = outerintersects.value().front();
+            
+            //innerから引いた直線から垂直に、outerの座標から太さの半分ずらした点を2つ生成する処理
             //90度回す
             const auto rotated = angle + (Math::Pi / 2);
             
@@ -115,6 +163,10 @@ public: //func
             //実際のずらす量を計算
             const Vec2 outeroffset = v * r;
             
+            //このあたりも極座標にしようと書き換えたところ、座標がぶっ飛んでいったので
+            //動作としては問題ありませんし他の仕様等を完成させるべきと考え
+            //以前書いたままにしてあります。
+            
             //左右にずらした座標を作る
             const Vec2 outerleft = outer + outeroffset;
             const Vec2 outerright = outer - outeroffset;
@@ -124,7 +176,7 @@ public: //func
         }
     }
     
-    void draw(const Color& color) const
+    void draw(const Color& color = Palette::Black) const
     {
         for(const auto& triangle : m_triangles)
         {
@@ -132,54 +184,91 @@ public: //func
         }
     }
     
-    void GenerateDraw(const Color& color) const
-    {
-        
-    }
+    //集中線を毎フレーム生成すると見た目が派手になるので
+    //GenerateしつつDrawする機能があってもいいかと思ったのですが
+    //本当に必要なのかちょっと考えています。
+    //現状動かせませんが、Generate()からGenarate(Array<Triangle>& array)constに中身を移動し
+    //Generate()はGenerate()constを呼び出すよう変更すれば可能です。
+    //機能的に蛇足となってしまうかもしれないのでとりあえず保留。
+    //    void GenerateDraw(const Color& color) const
+    //    {
+    //
+    //    }
 };
+
+struct
+{
+    double value;
+    double max;
+    double min = 0;
+}num,thick,posrandom,thickrandom;
 
 void Main()
 {
     Window::Resize(1280, 720);
     
-    Ellipse el(500, 400, 300, 100);
-    //Ellipse el2 = el.stretched(800);
+    Ellipse el(500, 400, 200, 100);
     
     ConcentratedEffect effect(el);
+    
+    //実装変えたのでEllipseじゃなくてもintersectsAtが使えれば動きます。
+    //Rect r(500, 400, 200, 100);
+    //ConcentratedEffect effect(r);
+    
+    
+    //外側を指定することも可能です。
+    //こちらもどんな図形でもできるはず。
+    //Ellipse el2 = el.stretched(400);
+    //ConcentratedEffect effect(el, el2);
+    
     
     Scene::SetBackground(HSV(0, 0, 0.93));
     
     Font font(90, Typeface::Default, FontStyle::BoldItalic);
     
-    double num = effect.linenum;
-    double thick = effect.thickness;
-    double posrandom = effect.posrandomness;
-    double thickrandom = effect.thickrandomness;
+    num.value = effect.linenum;
+    thick.value = effect.thickness;
+    posrandom.value = effect.posrandomness;
+    thickrandom.value = effect.thickrandomness;
+
+    num.max = 300;
+    thick.max = 80;
+    posrandom.max = 400;
+    thickrandom.max = 50;
     
     while(System::Update())
     {
         font(U"集中線").drawAt(el.center, Palette::Black);
         
-        effect.draw(Palette::Black);
-        
+        //Slider GUIのサイズ
         const int label = 130;
         const int slider = 250;
-        SimpleGUI::Slider(U"num{:.0f}"_fmt(num), num, 0.0, 300.0, Vec2(100, 80), label, slider);
-        SimpleGUI::Slider(U"thick{:.0f}"_fmt(thick), thick, 0.0, 80.0, Vec2(100, 80 + 40 * 1), label, slider);
-        SimpleGUI::Slider(U"posRand{:.0f}"_fmt(posrandom), posrandom, 0.0, 400.0, Vec2(100, 80 + 40 * 2), label, slider);
-        SimpleGUI::Slider(U"thickRand{:.0f}"_fmt(thickrandom), thickrandom, 0.0, 50.0, Vec2(100, 80 + 40 * 3), label, slider);
+        //GUIのベース座標
+        const int x = 100;
+        const int y = 80;
         
-        effect.linenum = static_cast<int>(num);
-        effect.thickness = static_cast<int>(thick);
-        effect.thickrandomness = static_cast<int>(thickrandom);
-        effect.posrandomness = static_cast<int>(posrandom);
+        effect.linenum = static_cast<int>(num.value);
+        effect.thickness = static_cast<int>(thick.value);
+        effect.thickrandomness = static_cast<int>(thickrandom.value);
+        effect.posrandomness = static_cast<int>(posrandom.value);
         
-        if(SimpleGUI::Button(U"Generate", Vec2(100, 40)))
+        
+        effect.draw(Palette::Black);
+        SimpleGUI::Slider(U"num{:.0f}"_fmt(num.value), num.value, num.min, num.max, Vec2(x, 80), label, slider);
+        SimpleGUI::Slider(U"thick{:.0f}"_fmt(thick.value), thick.value, thick.min, thick.max, Vec2(x, 80 + 40 * 1), label, slider);
+        SimpleGUI::Slider(U"posRand{:.0f}"_fmt(posrandom.value), posrandom.value, posrandom.min, posrandom.max, Vec2(x, 80 + 40 * 2), label, slider);
+        SimpleGUI::Slider(U"thickRand{:.0f}"_fmt(thickrandom.value), thickrandom.value, thickrandom.min, thickrandom.max, Vec2(x, 80 + 40 * 3), label, slider);
+        
+        if(SimpleGUI::Button(U"Generate", Vec2(x, 40)))
         {
             effect.Generate();
         }
-        if(SimpleGUI::Button(U"RandomSet", Vec2(260, 40)))
+        if(SimpleGUI::Button(U"RandomSet", Vec2(x + 140, 40)))
         {
+            num.value = Random(num.min, num.max);
+            thick.value = Random(thick.min, thick.max);
+            posrandom.value = Random(posrandom.min, posrandom.max);
+            thickrandom.value = Random(thickrandom.min, thickrandom.max);
             effect.Generate();
         }
     }
