@@ -5,14 +5,8 @@
 //角度の正規化 0~2π
 double AngleNormalize(double angle)
 {
-    //負だったら正の値にする
-    //modを取るので大きめの値
-    while(angle < 0)
-    {
-        angle += Math::Pi * 2 * 10000;
-    }
-    
-    return fmod(angle, Math::Pi * 2);
+    const auto ret = fmod(angle, Math::Pi * 2);
+    return ret < 0 ? ret : ret + Math::Pi * 2;
 }
 
 // 集中線クラス
@@ -148,7 +142,7 @@ void Main()
 {
     Window::Resize(1280, 720);
     
-    Ellipse el(400, 400, 300, 100);
+    Ellipse el(500, 400, 300, 100);
     //Ellipse el2 = el.stretched(800);
     
     ConcentratedEffect effect(el);
