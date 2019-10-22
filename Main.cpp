@@ -113,81 +113,83 @@ namespace s3d
         }
 
     public:  // getter setter
-        void SetInnerShape(const InnerShape& innerShape)
+        void setInnerShape(const InnerShape& innerShape)
         {
             m_innerShape = innerShape;
             m_isDirty = true;
         }
 
-        const InnerShape& GetInnerShape() const noexcept
+        const InnerShape& getInnerShape() const noexcept
         {
             return m_innerShape;
         }
 
-        void SetOuterShape(const OuterShape& outershape)
+        void setOuterShape(const OuterShape& outershape)
         {
             m_outerShape = outershape;
             m_isDirty = true;
         }
 
-        const OuterShape& GetOuterShape() const noexcept
+        const OuterShape& getOuterShape() const noexcept
         {
             return m_outerShape;
         }
 
-        void SetLineNum(size_t linenum)
+        void setLineNum(size_t linenum)
         {
             m_lineNum = linenum;
             m_isDirty = true;
         }
 
-        size_t GetLineNum() const noexcept
+        size_t getLineNum() const noexcept
         {
             return m_lineNum;
         }
 
-        void SetMinThickness(double minthickness)
+        void setMinThickness(double minthickness)
         {
             m_minThickness = minthickness;
+            m_maxThickness = Max(m_maxThickness, m_maxThickness);
             m_isDirty = true;
         }
 
-        double GetMinThickness() const noexcept
+        double getMinThickness() const noexcept
         {
             return m_minThickness;
         }
 
-        void SetMaxThickness(double maxthickness)
+        void setMaxThickness(double maxthickness)
         {
             m_maxThickness = maxthickness;
+            m_minThickness = Min(m_maxThickness, m_maxThickness);
             m_isDirty = true;
         }
 
-        double GetMaxThickness() const noexcept
+        double getMaxThickness() const noexcept
         {
             return m_maxThickness;
         }
 
-        void SetPosRandomness(double posrandomness)
+        void setPosRandomness(double posrandomness)
         {
             m_posRandomness = posrandomness;
             m_isDirty = true;
         }
 
-        double GetPosRandomness() const noexcept
+        double getPosRandomness() const noexcept
         {
             return m_posRandomness;
         }
 
-        void SetSeed(uint64 seed)
+        void setSeed(uint64 seed)
         {
             m_rng.seed(seed);
             m_isDirty = true;
         }
-        
+
         uint64 getSeed() const noexcept
         {
-            return m_rng.seed();
+            return 0;
         }
 
     public:  // constructor
@@ -232,6 +234,7 @@ namespace s3d
 
             //半径を長く取る
             //画面より大きければよほどのことがない限り平気なはず
+            //図形により大きさの取得法が違うし、十分大きければ特に支障はないので決め打ちします。
             cir.r = 1000000;
 
             UniformDistribution<double> angleDist(0.0, 2 * Math::Pi);
@@ -241,7 +244,7 @@ namespace s3d
             for (auto i : step(m_lineNum))
             {
                 //極座標を初期化
-                double angle = angleDist(m_rng);
+                const double angle = angleDist(m_rng);
                 cir.theta = angle;
                 cir.setCenter(Center(m_innerShape));
 
@@ -261,20 +264,20 @@ namespace s3d
                 }
 
                 //内側は太さは必要ないので中心線の座標をそのまま使用
-                const Vec2 inner = innerintersects.value().front();
+                const Vec2 inner = innerintersects->front();
 
                 //外側の中心(基準)となる座標を計算する
                 const auto outerintersects = m_outerShape.intersectsAt(line);
 
                 //外側の基準座標を取得できなかったら、その線はスキップして処理は続行
-                //並行になっていた場合は…最も遠い点を取得して線を引くのが理想だが、実装コストに対する見返りが極めて少ないので諦めることにします。
+                //並行になっていた場合は…最も遠い点を取得して線を引くのが理想だが、実装のコスパが悪すぎるので諦めることにします。
                 if (!outerintersects || outerintersects->isEmpty())
                 {
                     continue;
                 }
 
-                const auto outer = outerintersects.value().front();
-                
+                const auto outer = outerintersects->front();
+
                 // innerから引いた直線から垂直に、outerの座標から太さの半分ずらした点を2つ生成する処理
                 // 90度回す
                 const auto rotated = angle + (Math::Pi / 2);
@@ -301,27 +304,20 @@ namespace s3d
             }
         }
 
-        void Generate(uint64 seed)
-        {
-            this->SetSeed(seed);
-            Generate();
-        }
-
         void draw(const ColorF& color = Palette::Black) const
         {
-            if(m_isDirty)
+            if (m_isDirty)
             {
                 Generate();
                 m_isDirty = false;
             }
-            
+
             for (const auto& triangle : m_triangles)
             {
                 triangle.draw(color);
             }
         }
     };
-
 }
 
 // Sample
@@ -335,6 +331,8 @@ struct
 
 void Main()
 {
+    DefaultRNGType drt;
+
     Window::Resize(1280, 720);
     Scene::SetBackground(ColorF(0.97, 0.96, 0.95));
 
@@ -350,64 +348,67 @@ void Main()
 
     // linework.SetSeed(0);
 
-    num.value = linework.GetLineNum();
-    posrandom.value = linework.GetPosRandomness();
-    minthick.value = linework.GetMinThickness();
-    maxthick.value = linework.GetMaxThickness();
+    num.value = linework.getLineNum();
+    posrandom.value = linework.getPosRandomness();
+    minthick.value = linework.getMinThickness();
+    maxthick.value = linework.getMaxThickness();
 
     num.max = 300;
     posrandom.max = 400;
     minthick.max = 30;
     maxthick.max = 80;
 
+    // Slider GUIのサイズ
+    constexpr int32 label = 130;
+    constexpr int32 slider = 250;
+    // GUIのベース座標
+    constexpr int32 x = 20;
+    constexpr int32 y = 10;
+
     while (System::Update())
     {
-        font(U"集中線").drawAt(linework.GetInnerShape().center, Palette::Black);
+        font(U"集中線").drawAt(linework.getInnerShape().center, Palette::Black);
 
-        // Slider GUIのサイズ
-        const int label = 130;
-        const int slider = 250;
-        // GUIのベース座標
-        const int x = 20;
-        const int y = 10;
+        linework.draw(ColorF(0.11));
 
-        SimpleGUI::Slider(U"Num{:.0f}"_fmt(num.value), num.value, num.min, num.max, Vec2(x, y), label, slider);
-        SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(posrandom.value), posrandom.value, posrandom.min, posrandom.max,
-                          Vec2(x, y + 40 * 1), label, slider);
-        SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minthick.value), minthick.value, minthick.min, minthick.max,
-                          Vec2(x, y + 40 * 2), label, slider);
-        SimpleGUI::Slider(U"MaxThick{:.0f}"_fmt(maxthick.value), maxthick.value, maxthick.min, maxthick.max,
-                          Vec2(x, y + 40 * 3), label, slider);
-
-        if (maxthick.value < minthick.value)
+        if (SimpleGUI::Slider(U"Num{:.0f}"_fmt(num.value), num.value, num.min, num.max, Vec2(x, y), label, slider))
         {
-            maxthick.value = minthick.value;
+            linework.setLineNum(num.value);
         }
 
-        if (SimpleGUI::Button(U"Generate", Vec2(x, y + 40 * 4)))
+        if (SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(posrandom.value), posrandom.value, posrandom.min, posrandom.max, Vec2(x, y + 40 * 1), label, slider))
         {
-            setValue();
-            linework.Generate();
+            linework.setPosRandomness(posrandom.value);
         }
 
-        if (SimpleGUI::Button(U"FixedGenerate", Vec2(x + 140, y + 40 * 4)))
+        if (SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minthick.value), minthick.value, minthick.min, minthick.max, Vec2(x, y + 40 * 2), label, slider))
         {
-            setValue();
-
-            linework.SetSeed(0);
-            linework.Generate();
-            // linework.Generate(0);
+            linework.setMinThickness(minthick.value);
+            minthick.value = linework.getMinThickness();
         }
-        
-        if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 4)))
+        if (SimpleGUI::Slider(U"MaxThick{:.0f}"_fmt(maxthick.value), maxthick.value, maxthick.min, maxthick.max, Vec2(x, y + 40 * 3), label, slider))
+        {
+            linework.setMaxThickness(maxthick.value);
+            maxthick.value = linework.getMaxThickness();
+        }
+
+        //乱数を固定した生成
+        if (SimpleGUI::Button(U"SeedReset", Vec2(x + 140, y + 40 * 4)))
+        {
+            linework.setSeed(0);
+        }
+
+        if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 5)))
         {
             num.value = Random(num.min, num.max);
             posrandom.value = Random(posrandom.min, posrandom.max);
             minthick.value = Random(minthick.min, minthick.max);
             maxthick.value = Random(minthick.value, maxthick.max);
+
+            linework.setLineNum(static_cast<size_t>(num.value));
+            linework.setMinThickness(static_cast<double>(minthick.value));
+            linework.setMaxThickness(static_cast<double>(maxthick.value));
+            linework.setPosRandomness(static_cast<double>(posrandom.value));
         }
-        
-        linework.Generate();
-        linework.draw(ColorF(0.11));
     }
 }
