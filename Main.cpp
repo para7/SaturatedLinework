@@ -96,7 +96,7 @@ namespace s3d
         double m_posRandomness = 40;
 
         uint64 m_seed;
-        
+
         //集中線の中身
         mutable Array<Triangle> m_triangles;
 
@@ -131,7 +131,7 @@ namespace s3d
         {
             m_outerShape = outershape;
             m_isDirty = true;
-                        return *this;
+            return *this;
         }
 
         const OuterShape& getOuterShape() const noexcept
@@ -156,7 +156,7 @@ namespace s3d
             m_minThickness = minthickness;
             m_maxThickness = Max(m_minThickness, m_maxThickness);
             m_isDirty = true;
-                        return *this;
+            return *this;
         }
 
         double getMinThickness() const noexcept
@@ -169,20 +169,20 @@ namespace s3d
             m_maxThickness = maxthickness;
             m_minThickness = Min(m_minThickness, m_maxThickness);
             m_isDirty = true;
-                        return *this;
+            return *this;
         }
 
         double getMaxThickness() const noexcept
         {
             return m_maxThickness;
         }
-        
+
         SaturatedLinework& setThickness(double minthickness, double maxthickness)
         {
             m_minThickness = Min(m_minThickness, m_maxThickness);
             m_maxThickness = Max(m_minThickness, m_maxThickness);
             m_isDirty = true;
-                        return *this;
+            return *this;
         }
 
         SaturatedLinework& setPosRandomness(double posrandomness)
@@ -197,13 +197,13 @@ namespace s3d
             return m_posRandomness;
         }
 
-         SaturatedLinework& setSeed(uint64 seed)
+        SaturatedLinework& setSeed(uint64 seed)
         {
             m_rng.seed(seed);
             m_isDirty = true;
             return *this;
         }
-        
+
         uint64 getSeed() const noexcept
         {
             return m_seed;
@@ -220,10 +220,9 @@ namespace s3d
         {
             m_seed = Random(std::numeric_limits<uint64>::max());
             setSeed(m_seed);
-            
+
             Generate();
             m_isDirty = true;
-
         }
 
         //外側の図形を指定する
@@ -429,11 +428,11 @@ void Main()
             maxthick.value = Random(minthick.value, maxthick.max);
 
             linework.setLineNum(static_cast<size_t>(num.value))
-            .setMinThickness(static_cast<double>(minthick.value))
-            .setMaxThickness(static_cast<double>(maxthick.value))
-            .setPosRandomness(static_cast<double>(posrandom.value));
+                .setMinThickness(static_cast<double>(minthick.value))
+                .setMaxThickness(static_cast<double>(maxthick.value))
+                .setPosRandomness(static_cast<double>(posrandom.value));
         }
-        
+
         if (SimpleGUI::Button(U"Generate", Vec2(x, y + 40 * 5)))
         {
             linework.Generate();
