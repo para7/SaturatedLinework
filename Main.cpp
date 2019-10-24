@@ -95,6 +95,8 @@ namespace s3d
         //出現位置のランダム幅
         double m_posRandomness = 40;
 
+        uint64 m_seed;
+        
         //集中線の中身
         mutable Array<Triangle> m_triangles;
 
@@ -113,10 +115,11 @@ namespace s3d
         }
 
     public:  // getter setter
-        void setInnerShape(const InnerShape& innerShape)
+        SaturatedLinework& setInnerShape(const InnerShape& innerShape)
         {
             m_innerShape = innerShape;
             m_isDirty = true;
+            return *this;
         }
 
         const InnerShape& getInnerShape() const noexcept
@@ -124,10 +127,11 @@ namespace s3d
             return m_innerShape;
         }
 
-        void setOuterShape(const OuterShape& outershape)
+        SaturatedLinework& setOuterShape(const OuterShape& outershape)
         {
             m_outerShape = outershape;
             m_isDirty = true;
+                        return *this;
         }
 
         const OuterShape& getOuterShape() const noexcept
@@ -135,10 +139,11 @@ namespace s3d
             return m_outerShape;
         }
 
-        void setLineNum(size_t linenum)
+        SaturatedLinework& setLineNum(size_t linenum)
         {
             m_lineNum = linenum;
             m_isDirty = true;
+            return *this;
         }
 
         size_t getLineNum() const noexcept
@@ -146,11 +151,12 @@ namespace s3d
             return m_lineNum;
         }
 
-        void setMinThickness(double minthickness)
+        SaturatedLinework& setMinThickness(double minthickness)
         {
             m_minThickness = minthickness;
-            m_maxThickness = Max(m_maxThickness, m_maxThickness);
+            m_maxThickness = Max(m_minThickness, m_maxThickness);
             m_isDirty = true;
+                        return *this;
         }
 
         double getMinThickness() const noexcept
@@ -158,22 +164,32 @@ namespace s3d
             return m_minThickness;
         }
 
-        void setMaxThickness(double maxthickness)
+        SaturatedLinework& setMaxThickness(double maxthickness)
         {
             m_maxThickness = maxthickness;
-            m_minThickness = Min(m_maxThickness, m_maxThickness);
+            m_minThickness = Min(m_minThickness, m_maxThickness);
             m_isDirty = true;
+                        return *this;
         }
 
         double getMaxThickness() const noexcept
         {
             return m_maxThickness;
         }
+        
+        SaturatedLinework& setThickness(double minthickness, double maxthickness)
+        {
+            m_minThickness = Min(m_minThickness, m_maxThickness);
+            m_maxThickness = Max(m_minThickness, m_maxThickness);
+            m_isDirty = true;
+                        return *this;
+        }
 
-        void setPosRandomness(double posrandomness)
+        SaturatedLinework& setPosRandomness(double posrandomness)
         {
             m_posRandomness = posrandomness;
             m_isDirty = true;
+            return *this;
         }
 
         double getPosRandomness() const noexcept
@@ -181,15 +197,16 @@ namespace s3d
             return m_posRandomness;
         }
 
-        void setSeed(uint64 seed)
+         SaturatedLinework& setSeed(uint64 seed)
         {
             m_rng.seed(seed);
             m_isDirty = true;
+            return *this;
         }
-
+        
         uint64 getSeed() const noexcept
         {
-            return 0;
+            return m_seed;
         }
 
     public:  // constructor
@@ -201,8 +218,12 @@ namespace s3d
             : m_innerShape(innerShape)
             , m_outerShape(Scene::Rect().stretched(30, 30))
         {
+            m_seed = Random(std::numeric_limits<uint64>::max());
+            setSeed(m_seed);
+            
             Generate();
             m_isDirty = true;
+
         }
 
         //外側の図形を指定する
@@ -210,6 +231,9 @@ namespace s3d
             : m_innerShape(innerShape)
             , m_outerShape(outerShape)
         {
+            m_seed = Random(std::numeric_limits<uint64>::max());
+            setSeed(m_seed);
+
             Generate();
             m_isDirty = true;
         }
@@ -384,31 +408,35 @@ void Main()
         if (SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minthick.value), minthick.value, minthick.min, minthick.max, Vec2(x, y + 40 * 2), label, slider))
         {
             linework.setMinThickness(minthick.value);
-            minthick.value = linework.getMinThickness();
+            maxthick.value = linework.getMaxThickness();
         }
         if (SimpleGUI::Slider(U"MaxThick{:.0f}"_fmt(maxthick.value), maxthick.value, maxthick.min, maxthick.max, Vec2(x, y + 40 * 3), label, slider))
         {
             linework.setMaxThickness(maxthick.value);
-            maxthick.value = linework.getMaxThickness();
+            minthick.value = linework.getMinThickness();
         }
 
-        //乱数を固定した生成
-        if (SimpleGUI::Button(U"SeedReset", Vec2(x + 140, y + 40 * 4)))
+        if (SimpleGUI::Button(U"Seed=0", Vec2(x + 160, y + 40 * 4)))
         {
             linework.setSeed(0);
         }
 
-        if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 5)))
+        if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 4)))
         {
             num.value = Random(num.min, num.max);
             posrandom.value = Random(posrandom.min, posrandom.max);
             minthick.value = Random(minthick.min, minthick.max);
             maxthick.value = Random(minthick.value, maxthick.max);
 
-            linework.setLineNum(static_cast<size_t>(num.value));
-            linework.setMinThickness(static_cast<double>(minthick.value));
-            linework.setMaxThickness(static_cast<double>(maxthick.value));
-            linework.setPosRandomness(static_cast<double>(posrandom.value));
+            linework.setLineNum(static_cast<size_t>(num.value))
+            .setMinThickness(static_cast<double>(minthick.value))
+            .setMaxThickness(static_cast<double>(maxthick.value))
+            .setPosRandomness(static_cast<double>(posrandom.value));
+        }
+        
+        if (SimpleGUI::Button(U"Generate", Vec2(x, y + 40 * 5)))
+        {
+            linework.Generate();
         }
     }
 }
