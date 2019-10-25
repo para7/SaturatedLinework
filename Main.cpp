@@ -63,7 +63,10 @@ namespace s3d
     }
 }
 
-//---<Center.cpp>---
+//---</Center.cpp>---
+
+#include <HamFramework.hpp>
+#include <Siv3D.hpp>
 
 namespace s3d
 {
@@ -78,7 +81,7 @@ namespace s3d
     class SaturatedLinework
     {
     private:
-        //内側の図形b
+        //内側の図形
         InnerShape m_innerShape;
         //外側の図形
         OuterShape m_outerShape;
@@ -103,7 +106,7 @@ namespace s3d
         //乱数エンジン
         mutable URNG m_rng;
 
-        mutable bool m_isDirty;
+        mutable bool m_isDirty = true;
 
     private:
         // innerShape　が outerShape に含まれているか簡単なチェック
@@ -210,7 +213,13 @@ namespace s3d
         }
 
     public:  // constructor
-        SaturatedLinework() = default;
+        SaturatedLinework()
+            : m_innerShape(Ellipse(Scene::CenterF(), 200, 100))
+            , m_outerShape(Scene::Rect().stretched(30, 30))
+        {
+            m_seed = Random(std::numeric_limits<uint64>::max());
+            setSeed(m_seed);
+        }
 
         // outershapeを指定しない場合は画面をカバーするように自動設定する
         //端の方が見えてしまうので画面より少し大きく
@@ -220,9 +229,6 @@ namespace s3d
         {
             m_seed = Random(std::numeric_limits<uint64>::max());
             setSeed(m_seed);
-
-            Generate();
-            m_isDirty = true;
         }
 
         //外側の図形を指定する
@@ -232,9 +238,6 @@ namespace s3d
         {
             m_seed = Random(std::numeric_limits<uint64>::max());
             setSeed(m_seed);
-
-            Generate();
-            m_isDirty = true;
         }
 
     public:  // func
@@ -293,7 +296,11 @@ namespace s3d
                 const auto outerintersects = m_outerShape.intersectsAt(line);
 
                 //外側の基準座標を取得できなかったら、その線はスキップして処理は続行
-                //並行になっていた場合は…最も遠い点を取得して線を引くのが理想だが、実装のコスパが悪すぎるので諦めることにします。
+                //並行になっていた場合は…最も遠い点を取得して線を引きたい
+                //そもそもInner=Ellipse, Outer=Rectで使っていたら平行にならないはず、
+                //その他の図形でもよほど変な形にしなければ平行になる確率は極めて低く、
+                //(平行が多発するような図形はとても歪な形で、頑張って線を引いたところでまともな形にならない)
+                //実装コスパが悪いので諦めることにします。
                 if (!outerintersects || outerintersects->isEmpty())
                 {
                     continue;
@@ -376,6 +383,9 @@ void Main()
     minthick.value = linework.getMinThickness();
     maxthick.value = linework.getMaxThickness();
 
+    const uint64 seed = linework.getSeed();
+    Print(U"seed:", seed);
+
     num.max = 300;
     posrandom.max = 400;
     minthick.max = 30;
@@ -386,7 +396,7 @@ void Main()
     constexpr int32 slider = 250;
     // GUIのベース座標
     constexpr int32 x = 20;
-    constexpr int32 y = 10;
+    constexpr int32 y = 40;
 
     while (System::Update())
     {
@@ -415,9 +425,9 @@ void Main()
             minthick.value = linework.getMinThickness();
         }
 
-        if (SimpleGUI::Button(U"Seed=0", Vec2(x + 160, y + 40 * 4)))
+        if (SimpleGUI::Button(U"SeedReset", Vec2(x + 160, y + 40 * 4)))
         {
-            linework.setSeed(0);
+            linework.setSeed(seed);
         }
 
         if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 4)))
@@ -428,8 +438,7 @@ void Main()
             maxthick.value = Random(minthick.value, maxthick.max);
 
             linework.setLineNum(static_cast<size_t>(num.value))
-                .setMinThickness(static_cast<double>(minthick.value))
-                .setMaxThickness(static_cast<double>(maxthick.value))
+                .setThickness(static_cast<double>(minthick.value), static_cast<double>(maxthick.value))
                 .setPosRandomness(static_cast<double>(posrandom.value));
         }
 
