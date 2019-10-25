@@ -77,14 +77,12 @@ namespace s3d
         return true;
     }
 
-    template <class InnerShape = Ellipse, class OuterShape = Rect, class URNG = DefaultRNGType>
+    template <class InnerShape = Ellipse, class URNG = DefaultRNGType>
     class SaturatedLinework
     {
     private:
         //内側の図形
         InnerShape m_innerShape;
-        //外側の図形
-        OuterShape m_outerShape;
 
         //線の数
         size_t m_lineNum = 70;
@@ -128,18 +126,6 @@ namespace s3d
         const InnerShape& getInnerShape() const noexcept
         {
             return m_innerShape;
-        }
-
-        SaturatedLinework& setOuterShape(const OuterShape& outershape)
-        {
-            m_outerShape = outershape;
-            m_isDirty = true;
-            return *this;
-        }
-
-        const OuterShape& getOuterShape() const noexcept
-        {
-            return m_outerShape;
         }
 
         SaturatedLinework& setLineNum(size_t linenum)
@@ -215,7 +201,6 @@ namespace s3d
     public:  // constructor
         SaturatedLinework()
             : m_innerShape(Ellipse(Scene::CenterF(), 200, 100))
-            , m_outerShape(Scene::Rect().stretched(30, 30))
         {
             m_seed = Random(std::numeric_limits<uint64>::max());
             setSeed(m_seed);
@@ -225,16 +210,6 @@ namespace s3d
         //端の方が見えてしまうので画面より少し大きく
         explicit SaturatedLinework(const InnerShape& innerShape)
             : m_innerShape(innerShape)
-            , m_outerShape(Scene::Rect().stretched(30, 30))
-        {
-            m_seed = Random(std::numeric_limits<uint64>::max());
-            setSeed(m_seed);
-        }
-
-        //外側の図形を指定する
-        SaturatedLinework(const InnerShape& innerShape, const OuterShape& outerShape)
-            : m_innerShape(innerShape)
-            , m_outerShape(outerShape)
         {
             m_seed = Random(std::numeric_limits<uint64>::max());
             setSeed(m_seed);
@@ -244,8 +219,13 @@ namespace s3d
         //集中線を生成する
         void Generate() const
         {
+            Generate(Scene::Rect().stretched(m_maxThickness / 2, m_maxThickness / 2));
+        }
+
+        void Generate(const Rect& outerShape) const
+        {
             // 内部の図形が外部の図形に包まれてない場合はエラー
-            if (!IsValid(m_innerShape, m_outerShape))
+            if (!IsValid(m_innerShape, outerShape))
             {
                 return;
             }
@@ -293,7 +273,7 @@ namespace s3d
                 const Vec2 inner = innerintersects->front();
 
                 //外側の中心(基準)となる座標を計算する
-                const auto outerintersects = m_outerShape.intersectsAt(line);
+                const auto outerintersects = outerShape.intersectsAt(line);
 
                 //外側の基準座標を取得できなかったら、その線はスキップして処理は続行
                 //並行になっていた場合は…最も遠い点を取得して線を引きたい
