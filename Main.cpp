@@ -118,8 +118,11 @@ namespace s3d
     public:  // getter setter
         SaturatedLinework& setInnerShape(const InnerShape& innerShape)
         {
-            m_innerShape = innerShape;
-            m_isDirty = true;
+            if (innerShape != m_innerShape)
+            {
+                m_innerShape = innerShape;
+                m_isDirty = true;
+            }
             return *this;
         }
 
@@ -128,10 +131,13 @@ namespace s3d
             return m_innerShape;
         }
 
-        SaturatedLinework& setLineNum(size_t linenum)
+        SaturatedLinework& setLineNum(size_t lineNum)
         {
-            m_lineNum = linenum;
-            m_isDirty = true;
+            if (lineNum != m_lineNum)
+            {
+                m_lineNum = lineNum;
+                m_isDirty = true;
+            }
             return *this;
         }
 
@@ -140,11 +146,14 @@ namespace s3d
             return m_lineNum;
         }
 
-        SaturatedLinework& setMinThickness(double minthickness)
+        SaturatedLinework& setMinThickness(double minThickness)
         {
-            m_minThickness = minthickness;
-            m_maxThickness = Max(m_minThickness, m_maxThickness);
-            m_isDirty = true;
+            if (m_minThickness != minThickness)
+            {
+                m_minThickness = minThickness;
+                m_maxThickness = Max(m_minThickness, m_maxThickness);
+                m_isDirty = true;
+            }
             return *this;
         }
 
@@ -153,11 +162,14 @@ namespace s3d
             return m_minThickness;
         }
 
-        SaturatedLinework& setMaxThickness(double maxthickness)
+        SaturatedLinework& setMaxThickness(double maxThickness)
         {
-            m_maxThickness = maxthickness;
-            m_minThickness = Min(m_minThickness, m_maxThickness);
-            m_isDirty = true;
+            if (m_maxThickness != maxThickness)
+            {
+                m_maxThickness = maxThickness;
+                m_minThickness = Min(m_minThickness, m_maxThickness);
+                m_isDirty = true;
+            }
             return *this;
         }
 
@@ -166,18 +178,30 @@ namespace s3d
             return m_maxThickness;
         }
 
-        SaturatedLinework& setThickness(double minthickness, double maxthickness)
+        SaturatedLinework& setThickness(double minThickness, double maxThickness)
         {
-            m_minThickness = Min(m_minThickness, m_maxThickness);
-            m_maxThickness = Max(m_minThickness, m_maxThickness);
-            m_isDirty = true;
+            assert(0.0 < minThickness);
+            assert(minThickness <= maxThickness);
+            if (m_minThickness != minThickness)
+            {
+                m_minThickness = minThickness;
+                m_isDirty = true;
+            }
+            if (m_maxThickness != maxThickness)
+            {
+                m_maxThickness = maxThickness;
+                m_isDirty = true;
+            }
             return *this;
         }
 
-        SaturatedLinework& setPosRandomness(double posrandomness)
+        SaturatedLinework& setPosRandomness(double posRandomness)
         {
-            m_posRandomness = posrandomness;
-            m_isDirty = true;
+            if (m_posRandomness != posRandomness)
+            {
+                m_posRandomness = posRandomness;
+                m_isDirty = true;
+            }
             return *this;
         }
 
@@ -206,8 +230,6 @@ namespace s3d
             setSeed(m_seed);
         }
 
-        // outershapeを指定しない場合は画面をカバーするように自動設定する
-        //端の方が見えてしまうので画面より少し大きく
         explicit SaturatedLinework(const InnerShape& innerShape)
             : m_innerShape(innerShape)
         {
@@ -222,10 +244,12 @@ namespace s3d
             Generate(Scene::Rect().stretched(m_maxThickness / 2, m_maxThickness / 2));
         }
 
-        void Generate(const Rect& outerShape) const
+        void Generate(const Rect& outerRect) const
         {
             // 内部の図形が外部の図形に包まれてない場合はエラー
-            if (!IsValid(m_innerShape, outerShape))
+            // 描画がおかしくなるだけで処理的に致命的な何かが起きるわけでもないので、
+            // 実はエラー出さなくてもいい？
+            if (!IsValid(m_innerShape, outerRect))
             {
                 return;
             }
@@ -237,6 +261,7 @@ namespace s3d
             //集中線の位置は実際に中心から線を引いてみて、交差した座標を取得する仕組み
             //交差座標の取得に使う
             OffsetCircular3 cir;
+            cir.setCenter(Center(m_innerShape));
 
             //半径を長く取る
             //画面より大きければよほどのことがない限り平気なはず
@@ -249,68 +274,67 @@ namespace s3d
 
             for (auto i : step(m_lineNum))
             {
-                //極座標を初期化
+                //生成角度を設定
                 const double angle = angleDist(m_rng);
                 cir.theta = angle;
-                cir.setCenter(Center(m_innerShape));
 
-                //中心線を作る
-                Line line(cir.center, cir);
+                //角度に沿った線を作る
+                const Line line(cir.center, cir);
 
-                //内側の座標
+                //内側の座標を計算する
                 //まずは位置にランダム性を持たせる
                 const auto is = m_innerShape.stretched(posDist(m_rng));
 
-                const auto innerintersects = is.intersectsAt(line);
+                const auto innerIntersects = is.intersectsAt(line);
 
-                //内側の図形の中心から線を引き始めているが、図形があまりにも大きいと交差しない
-                if (!innerintersects)
+                //内側の図形の中心から線を引き始めているが、図形があまりにも大きいと交差しないので注意
+                if (!innerIntersects || innerIntersects->isEmpty())
                 {
                     continue;
                 }
 
                 //内側は太さは必要ないので中心線の座標をそのまま使用
-                const Vec2 inner = innerintersects->front();
+                const Vec2 inner = innerIntersects->front();
 
-                //外側の中心(基準)となる座標を計算する
-                const auto outerintersects = outerShape.intersectsAt(line);
+                //外側の中心(基準)となる座標を計算する そのまま使うわけではない
+                const auto outerIntersects = outerRect.intersectsAt(line);
 
                 //外側の基準座標を取得できなかったら、その線はスキップして処理は続行
                 //並行になっていた場合は…最も遠い点を取得して線を引きたい
-                //そもそもInner=Ellipse, Outer=Rectで使っていたら平行にならないはず、
-                //その他の図形でもよほど変な形にしなければ平行になる確率は極めて低く、
+                //そもそもInner=Ellipse, Outer=Rectで使っていたら平行にならないはず。
+                //その他の図形でもよほど変な形にしなければ平行になる確率は極めて低く
                 //(平行が多発するような図形はとても歪な形で、頑張って線を引いたところでまともな形にならない)
-                //実装コスパが悪いので諦めることにします。
-                if (!outerintersects || outerintersects->isEmpty())
+                //実装コスパが悪いので諦める方が無難と思われる。
+                if (!outerIntersects || outerIntersects->isEmpty())
                 {
                     continue;
                 }
 
-                const auto outer = outerintersects->front();
+                const Vec2 outer = outerIntersects->front();
 
                 // innerから引いた直線から垂直に、outerの座標から太さの半分ずらした点を2つ生成する処理
                 // 90度回す
-                const auto rotated = angle + (Math::Pi / 2);
+                const double rotated = angle + (Math::Pi / 2);
 
-                //ずらす量は太さの半分
-                const double r = thickDist(m_rng);
+                //ずらす量
+                //左右に広げるので、ここでの量は半分
+                const double r = thickDist(m_rng) / 2;
 
-                //単位ベクトルを生成
+                //単位ベクトル
                 const Vec2 v(cos(rotated), sin(rotated));
 
-                //実際のずらす量を計算
-                const Vec2 outeroffset = v * r;
+                const Vec2 outerOffset = v * r;
 
-                //このあたりも極座標にしようと書き換えたところ、座標がぶっ飛んでいったので
-                //動作としては問題ありませんし他の仕様等を完成させるべきと考え
-                //以前書いたままにしてあります。
+                //このあたりも極座標にしようと書き換えてみたところ、計算ミスでぶっ飛んでいったので
+                //特に動作も計算コストも問題ありませんし、そのままにしておきます。
 
                 //左右にずらした座標を作る
-                const Vec2 outerleft = outer + outeroffset;
-                const Vec2 outerright = outer - outeroffset;
+                // 180度にずらすので、-+で対処可能
+                const Vec2 outerLeft = outer + outerOffset;
+                const Vec2 outerRight = outer - outerOffset;
 
                 // Triangleの座標として登録
-                m_triangles.emplace_back(inner, outerleft, outerright);
+                m_triangles.emplace_back(inner, outerLeft, outerRight);
             }
         }
 
@@ -322,7 +346,7 @@ namespace s3d
                 m_isDirty = false;
             }
 
-            for (const auto& triangle : m_triangles)
+            for (const Triangle& triangle : m_triangles)
             {
                 triangle.draw(color);
             }
@@ -368,8 +392,8 @@ void Main()
 
     num.max = 300;
     posrandom.max = 400;
-    minthick.max = 30;
-    maxthick.max = 80;
+    minthick.max = 50;
+    maxthick.max = 120;
 
     // Slider GUIのサイズ
     constexpr int32 label = 130;
