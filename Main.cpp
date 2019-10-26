@@ -148,6 +148,12 @@ namespace s3d
 
         SaturatedLinework& setMinThickness(double minThickness)
         {
+            // minThickness = Max(0.0, minThickness);
+            // minThickness = Min(m_maxThickness, minThickness);
+
+            assert(0.0 <= minThickness);
+            assert(minThickness <= m_maxThickness);
+
             if (m_minThickness != minThickness)
             {
                 m_minThickness = minThickness;
@@ -164,6 +170,9 @@ namespace s3d
 
         SaturatedLinework& setMaxThickness(double maxThickness)
         {
+            // maxThickness = Max(m_minThickness, maxThickness);
+            assert(m_minThickness <= maxThickness);
+
             if (m_maxThickness != maxThickness)
             {
                 m_maxThickness = maxThickness;
@@ -180,7 +189,7 @@ namespace s3d
 
         SaturatedLinework& setThickness(double minThickness, double maxThickness)
         {
-            assert(0.0 < minThickness);
+            assert(0.0 <= minThickness);
             assert(minThickness <= maxThickness);
             if (m_minThickness != minThickness)
             {
@@ -361,7 +370,7 @@ struct
     double value;
     double max;
     double min = 0;
-} num, posrandom, minthick, maxthick;
+} num, posRandom, minThick, maxThick;
 
 void Main()
 {
@@ -383,17 +392,17 @@ void Main()
     // linework.SetSeed(0);
 
     num.value = linework.getLineNum();
-    posrandom.value = linework.getPosRandomness();
-    minthick.value = linework.getMinThickness();
-    maxthick.value = linework.getMaxThickness();
+    posRandom.value = linework.getPosRandomness();
+    minThick.value = linework.getMinThickness();
+    maxThick.value = linework.getMaxThickness();
 
     const uint64 seed = linework.getSeed();
     Print(U"seed:", seed);
 
     num.max = 300;
-    posrandom.max = 400;
-    minthick.max = 50;
-    maxthick.max = 120;
+    posRandom.max = 400;
+    minThick.max = 50;
+    maxThick.max = 120;
 
     // Slider GUIのサイズ
     constexpr int32 label = 130;
@@ -408,26 +417,22 @@ void Main()
 
         linework.draw(ColorF(0.11));
 
-        if (SimpleGUI::Slider(U"Num{:.0f}"_fmt(num.value), num.value, num.min, num.max, Vec2(x, y), label, slider))
+        SimpleGUI::Slider(U"Num{:.0f}"_fmt(num.value), num.value, num.min, num.max, Vec2(x, y), label, slider);
+        SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(posRandom.value), posRandom.value, posRandom.min, posRandom.max, Vec2(x, y + 40 * 1), label, slider);
+
+        if (SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minThick.value), minThick.value, minThick.min, minThick.max, Vec2(x, y + 40 * 2), label, slider))
         {
-            linework.setLineNum(num.value);
+            maxThick.value = Max(maxThick.value, minThick.value);
         }
 
-        if (SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(posrandom.value), posrandom.value, posrandom.min, posrandom.max, Vec2(x, y + 40 * 1), label, slider))
+        if (SimpleGUI::Slider(U"MaxThick{:.0f}"_fmt(maxThick.value), maxThick.value, maxThick.min, maxThick.max, Vec2(x, y + 40 * 3), label, slider))
         {
-            linework.setPosRandomness(posrandom.value);
+            minThick.value = Min(maxThick.value, minThick.value);
         }
 
-        if (SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minthick.value), minthick.value, minthick.min, minthick.max, Vec2(x, y + 40 * 2), label, slider))
-        {
-            linework.setMinThickness(minthick.value);
-            maxthick.value = linework.getMaxThickness();
-        }
-        if (SimpleGUI::Slider(U"MaxThick{:.0f}"_fmt(maxthick.value), maxthick.value, maxthick.min, maxthick.max, Vec2(x, y + 40 * 3), label, slider))
-        {
-            linework.setMaxThickness(maxthick.value);
-            minthick.value = linework.getMinThickness();
-        }
+        linework.setLineNum(num.value);
+        linework.setPosRandomness(posRandom.value);
+        linework.setThickness(minThick.value, maxThick.value);
 
         if (SimpleGUI::Button(U"SeedReset", Vec2(x + 160, y + 40 * 4)))
         {
@@ -437,13 +442,13 @@ void Main()
         if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 4)))
         {
             num.value = Random(num.min, num.max);
-            posrandom.value = Random(posrandom.min, posrandom.max);
-            minthick.value = Random(minthick.min, minthick.max);
-            maxthick.value = Random(minthick.value, maxthick.max);
+            posRandom.value = Random(posRandom.min, posRandom.max);
+            minThick.value = Random(minThick.min, minThick.max);
+            maxThick.value = Random(minThick.value, maxThick.max);
 
             linework.setLineNum(static_cast<size_t>(num.value))
-                .setThickness(static_cast<double>(minthick.value), static_cast<double>(maxthick.value))
-                .setPosRandomness(static_cast<double>(posrandom.value));
+                .setThickness(static_cast<double>(minThick.value), static_cast<double>(maxThick.value))
+                .setPosRandomness(static_cast<double>(posRandom.value));
         }
 
         if (SimpleGUI::Button(U"Generate", Vec2(x, y + 40 * 5)))
