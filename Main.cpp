@@ -6,7 +6,7 @@ struct
     double value;
     double max;
     double min = 0;
-} num, posRandom, minThick, maxThick;
+} lineCount, targetOffsetRange, minThick, maxThick;
 
 void Main()
 {
@@ -23,16 +23,16 @@ void Main()
 
     // linework.SetSeed(0);
 
-    num.value = static_cast<int>(linework.getLineCount());
-    posRandom.value = linework.getTargetOffsetRange();
+    lineCount.value = static_cast<int>(linework.getLineCount());
+    targetOffsetRange.value = linework.getTargetOffsetRange();
     minThick.value = linework.getMinThickness();
     maxThick.value = linework.getMaxThickness();
 
     const uint64 seed = linework.getSeed();
     Print(U"seed:", seed);
 
-    num.max = 300;
-    posRandom.max = 400;
+    lineCount.max = 300;
+    targetOffsetRange.max = 400;
     minThick.max = 50;
     maxThick.max = 120;
 
@@ -50,8 +50,6 @@ void Main()
     const Rect virtualWindow = Scene::Rect().scaled(0.92);
     linework.setOuterRect(virtualWindow);
 
-    bool everyGenerate = false;
-    
     while (System::Update())
     {
         virtualWindow.draw(windowColor);
@@ -63,8 +61,8 @@ void Main()
 
         font(U"集中線").drawAt(linework.getInnerShape().center, Palette::Black);
 
-        SimpleGUI::Slider(U"Num{:.0f}"_fmt(num.value), num.value, num.min, num.max, Vec2(x, y), label, slider);
-        SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(posRandom.value), posRandom.value, posRandom.min, posRandom.max, Vec2(x, y + 40 * 1), label, slider);
+        SimpleGUI::Slider(U"Num{:.0f}"_fmt(lineCount.value), lineCount.value, lineCount.min, lineCount.max, Vec2(x, y), label, slider);
+        SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(targetOffsetRange.value), targetOffsetRange.value, targetOffsetRange.min, targetOffsetRange.max, Vec2(x, y + 40 * 1), label, slider);
 
         if (SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minThick.value), minThick.value, minThick.min, minThick.max, Vec2(x, y + 40 * 2), label, slider))
         {
@@ -76,8 +74,8 @@ void Main()
             minThick.value = Min(maxThick.value, minThick.value);
         }
 
-        linework.setLineCount(static_cast<int>(num.value));
-        linework.setTargetOffsetRange(posRandom.value);
+        linework.setLineCount(static_cast<int>(lineCount.value));
+        linework.setTargetOffsetRange(targetOffsetRange.value);
         linework.setThickness(minThick.value, maxThick.value);
 
         if (SimpleGUI::Button(U"SeedReset", Vec2(x + 160, y + 40 * 4)))
@@ -89,14 +87,14 @@ void Main()
 
         if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 4)))
         {
-            num.value = Random(num.min, num.max);
-            posRandom.value = Random(posRandom.min, posRandom.max);
+            lineCount.value = Random(lineCount.min, lineCount.max);
+            targetOffsetRange.value = Random(targetOffsetRange.min, targetOffsetRange.max);
             minThick.value = Random(minThick.min, minThick.max);
             maxThick.value = Random(minThick.value, maxThick.max);
 
-            linework.setLineCount(static_cast<size_t>(num.value))
+            linework.setLineCount(static_cast<size_t>(lineCount.value))
                 .setThickness(static_cast<double>(minThick.value), static_cast<double>(maxThick.value))
-                .setTargetOffsetRange(static_cast<double>(posRandom.value));
+                .setTargetOffsetRange(static_cast<double>(targetOffsetRange.value));
         }
 
         if (SimpleGUI::Button(U"Generate", Vec2(x, y + 40 * 5)))
