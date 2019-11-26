@@ -1,3 +1,5 @@
+﻿#pragma once
+
 #include <Siv3D.hpp>
 
 namespace s3d
@@ -46,6 +48,9 @@ namespace s3d
 
     public:
 
+        /// <summary>
+        /// 
+        /// </summary>
         SaturatedLinework()
             : m_innerShape(Ellipse(Scene::CenterF(), 200, 100))
             , m_outerRect(Scene::Rect())
@@ -53,6 +58,12 @@ namespace s3d
             setSeed(RandomUint64());
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="innerShape">
+        /// 
+        /// </param>
         explicit SaturatedLinework(const InnerShape& innerShape)
             : m_innerShape(innerShape)
             , m_outerRect(Scene::Rect())
@@ -60,6 +71,15 @@ namespace s3d
             setSeed(RandomUint64());
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="innerShape">
+        /// 
+        /// </param>
+        /// <param name="outerShape">
+        /// 
+        /// </param>
         SaturatedLinework(const InnerShape& innerShape, const Rect& outerShape)
             : m_innerShape(innerShape)
             , m_outerRect(outerShape)
@@ -67,6 +87,15 @@ namespace s3d
             setSeed(RandomUint64());
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="innerShape">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
         SaturatedLinework& setInnerShape(const InnerShape& innerShape)
         {
             if (innerShape != m_innerShape)
@@ -78,11 +107,22 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>
+        /// 
+        /// </returns>
         [[nodiscard]] const InnerShape& getInnerShape() const noexcept
         {
             return m_innerShape;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="outerRect"></param>
+        /// <returns></returns>
         SaturatedLinework& setOuterRect(const Rect& outerRect)
         {
             if (outerRect != m_outerRect)
@@ -94,6 +134,12 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>
+        /// 
+        /// </returns>
         [[nodiscard]] const Rect& getOuterRect() const noexcept
         {
             return m_outerRect;
@@ -110,11 +156,24 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         [[nodiscard]] size_t getLineCount() const noexcept
         {
             return m_lineCount;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="minThickness">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
         SaturatedLinework& setMinThickness(double minThickness)
         {
             if (minThickness < 0.0)
@@ -136,11 +195,26 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>
+        /// 
+        /// </returns>
         [[nodiscard]] double getMinThickness() const noexcept
         {
             return m_minThickness;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="maxThickness">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
         SaturatedLinework& setMaxThickness(double maxThickness)
         {
             if (maxThickness < m_minThickness)
@@ -157,11 +231,29 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>
+        /// 
+        /// </returns>
         [[nodiscard]] double getMaxThickness() const noexcept
         {
             return m_maxThickness;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="minThickness">
+        /// 
+        /// </param>
+        /// <param name="maxThickness">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
         SaturatedLinework& setThickness(double minThickness, double maxThickness)
         {
             if (minThickness < 0.0)
@@ -189,6 +281,15 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="targetOffsetRange">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
         SaturatedLinework& setTargetOffsetRange(double targetOffsetRange)
         {
             if (targetOffsetRange != m_targetOffsetRange)
@@ -199,11 +300,26 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>
+        /// 
+        /// </returns>
         [[nodiscard]] double getTargetOffsetRange() const noexcept
         {
             return m_targetOffsetRange;
         }
-
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="seed">
+        /// 
+        /// </param>
+        /// <returns>
+        /// 
+        /// </returns>
         SaturatedLinework& setSeed(uint64 seed)
         {
             m_seed = seed;
@@ -212,12 +328,20 @@ namespace s3d
             return *this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns>
+        /// 
+        /// </returns>
         [[nodiscard]] uint64 getSeed() const noexcept
         {
             return m_seed;
         }
 
-        // 集中線を生成する
+        /// <summary>
+        /// 集中線を生成する
+        /// </summary>
         void generate() const
         {
             const int32 offset = static_cast<int32>(m_maxThickness / 2);
@@ -310,6 +434,12 @@ namespace s3d
             }
         }
 
+        /// <summary>
+        /// 集中線を描画する
+        /// </summary>
+        /// <param name="color">
+        /// 集中線の色
+        /// </param>
         void draw(const ColorF& color = Palette::Black) const
         {
             if (m_isDirty)
