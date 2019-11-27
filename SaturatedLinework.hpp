@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <Siv3D.hpp>
 
@@ -49,7 +49,7 @@ namespace s3d
     public:
 
         /// <summary>
-        /// 
+        /// デフォルトコンストラクタ
         /// </summary>
         SaturatedLinework()
             : m_innerShape(Ellipse(Scene::CenterF(), 200, 100))
@@ -59,10 +59,10 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 集中線を作成します。
         /// </summary>
         /// <param name="innerShape">
-        /// 
+        /// 集中線の輪郭
         /// </param>
         explicit SaturatedLinework(const InnerShape& innerShape)
             : m_innerShape(innerShape)
@@ -72,13 +72,13 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 集中線を作成します。
         /// </summary>
         /// <param name="innerShape">
-        /// 
+        /// 集中線の輪郭
         /// </param>
         /// <param name="outerShape">
-        /// 
+        /// 集中線の描画範囲
         /// </param>
         SaturatedLinework(const InnerShape& innerShape, const Rect& outerShape)
             : m_innerShape(innerShape)
@@ -88,13 +88,13 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 集中線の輪郭を設定します。
         /// </summary>
         /// <param name="innerShape">
-        /// 
+        /// 集中線の輪郭
         /// </param>
         /// <returns>
-        /// 
+        /// *this
         /// </returns>
         SaturatedLinework& setInnerShape(const InnerShape& innerShape)
         {
@@ -108,10 +108,10 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 集中線の輪郭を返します。
         /// </summary>
         /// <returns>
-        /// 
+        /// 集中線の輪郭
         /// </returns>
         [[nodiscard]] const InnerShape& getInnerShape() const noexcept
         {
@@ -119,10 +119,14 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 集中線の描画範囲を設定します。
         /// </summary>
-        /// <param name="outerRect"></param>
-        /// <returns></returns>
+        /// <param name="outerRect">
+        /// 集中線の描画範囲
+        /// </param>
+        /// <returns>
+        /// *this
+        /// </returns>
         SaturatedLinework& setOuterRect(const Rect& outerRect)
         {
             if (outerRect != m_outerRect)
@@ -135,16 +139,25 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 集中線の描画範囲を返します
         /// </summary>
         /// <returns>
-        /// 
+        /// 集中線の描画範囲
         /// </returns>
         [[nodiscard]] const Rect& getOuterRect() const noexcept
         {
             return m_outerRect;
         }
 
+        /// <summary>
+        /// 線の本数を設定します。
+        /// </summary>
+        /// <param name="outerRect">
+        /// 線の本数
+        /// </param>
+        /// <returns>
+        /// *this
+        /// </returns>
         SaturatedLinework& setLineCount(size_t lineCount)
         {
             if (lineCount != m_lineCount)
@@ -157,22 +170,24 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 線の本数を返します。
         /// </summary>
-        /// <returns></returns>
+        /// <returns>
+        /// 線の本数
+        /// </returns>
         [[nodiscard]] size_t getLineCount() const noexcept
         {
             return m_lineCount;
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="minThickness">
-        /// 
+        ///
         /// </param>
         /// <returns>
-        /// 
+        ///
         /// </returns>
         SaturatedLinework& setMinThickness(double minThickness)
         {
@@ -196,10 +211,10 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <returns>
-        /// 
+        ///
         /// </returns>
         [[nodiscard]] double getMinThickness() const noexcept
         {
@@ -207,13 +222,13 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="maxThickness">
-        /// 
+        ///
         /// </param>
         /// <returns>
-        /// 
+        ///
         /// </returns>
         SaturatedLinework& setMaxThickness(double maxThickness)
         {
@@ -232,10 +247,10 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <returns>
-        /// 
+        ///
         /// </returns>
         [[nodiscard]] double getMaxThickness() const noexcept
         {
@@ -243,16 +258,16 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 線の太さを設定します。
         /// </summary>
         /// <param name="minThickness">
-        /// 
+        /// 最も太くなる場所の下限値
         /// </param>
         /// <param name="maxThickness">
-        /// 
+        /// 最も太くなる場所の上限値
         /// </param>
         /// <returns>
-        /// 
+        /// *this
         /// </returns>
         SaturatedLinework& setThickness(double minThickness, double maxThickness)
         {
@@ -282,13 +297,13 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 輪郭のばらけ具合を設定します
         /// </summary>
         /// <param name="targetOffsetRange">
-        /// 
+        /// ばらける範囲
         /// </param>
         /// <returns>
-        /// 
+        /// *this
         /// </returns>
         SaturatedLinework& setTargetOffsetRange(double targetOffsetRange)
         {
@@ -301,24 +316,24 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// 輪郭のばらけ具合を返します。
         /// </summary>
         /// <returns>
-        /// 
+        /// 輪郭のばらけ具合
         /// </returns>
         [[nodiscard]] double getTargetOffsetRange() const noexcept
         {
             return m_targetOffsetRange;
         }
-        
+
         /// <summary>
-        /// 
+        /// シード値を設定します。
         /// </summary>
         /// <param name="seed">
-        /// 
+        /// シード値
         /// </param>
         /// <returns>
-        /// 
+        /// *this
         /// </returns>
         SaturatedLinework& setSeed(uint64 seed)
         {
@@ -329,10 +344,10 @@ namespace s3d
         }
 
         /// <summary>
-        /// 
+        /// シード値を返します。
         /// </summary>
         /// <returns>
-        /// 
+        /// シード値
         /// </returns>
         [[nodiscard]] uint64 getSeed() const noexcept
         {
