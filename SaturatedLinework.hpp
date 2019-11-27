@@ -181,13 +181,13 @@ namespace s3d
         }
 
         /// <summary>
-        ///
+        /// 線が最も太くなる場所の下限値を設定します。
         /// </summary>
-        /// <param name="minThickness">
-        ///
+        /// <param name="maxThickness">
+        /// 最も太くなる場所の下限値
         /// </param>
         /// <returns>
-        ///
+        /// *this
         /// </returns>
         SaturatedLinework& setMinThickness(double minThickness)
         {
@@ -211,10 +211,10 @@ namespace s3d
         }
 
         /// <summary>
-        ///
+        /// 線の太さの下限値を返します。
         /// </summary>
         /// <returns>
-        ///
+        /// 線の太さの下限値
         /// </returns>
         [[nodiscard]] double getMinThickness() const noexcept
         {
@@ -222,13 +222,13 @@ namespace s3d
         }
 
         /// <summary>
-        ///
+        /// 線が最も太くなる場所の上限値を設定します。
         /// </summary>
         /// <param name="maxThickness">
-        ///
+        /// 最も太くなる場所の上限値
         /// </param>
         /// <returns>
-        ///
+        /// *this
         /// </returns>
         SaturatedLinework& setMaxThickness(double maxThickness)
         {
@@ -247,10 +247,10 @@ namespace s3d
         }
 
         /// <summary>
-        ///
+        /// 線の太さの上限値を返します。
         /// </summary>
         /// <returns>
-        ///
+        /// 線の太さの上限値
         /// </returns>
         [[nodiscard]] double getMaxThickness() const noexcept
         {
@@ -363,7 +363,7 @@ namespace s3d
             const Rect outerRect = m_outerRect.stretched(offset);
 
             // 内部の図形が外部の図形に包まれてない場合はエラー
-            // [ToDo] より厳密に
+            // [Siv3D ToDo] より厳密に
             if (!IsValid(m_innerShape, outerRect))
             {
                 return;

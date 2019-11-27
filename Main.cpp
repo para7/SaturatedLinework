@@ -1,4 +1,5 @@
-﻿#include <Siv3D.hpp>
+
+#include <Siv3D.hpp>
 #include "SaturatedLinework.hpp"
 
 struct
@@ -39,7 +40,7 @@ void Main()
     // Slider GUIのサイズ
     constexpr int32 label = 130;
     constexpr int32 slider = 250;
-    
+
     // GUIのベース座標
     constexpr int32 x = 20;
     constexpr int32 y = 40;
