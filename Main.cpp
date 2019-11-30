@@ -2,6 +2,7 @@
 #include <Siv3D.hpp>
 #include "SaturatedLinework.hpp"
 
+//数値保存用
 struct
 {
     double value;
@@ -17,20 +18,23 @@ void Main()
 
     const Font font(90, Typeface::Default, FontStyle::BoldItalic);
 
-    const Vec2 innerShapeCenter(800, 400);
-    const auto innerShape = Ellipse(innerShapeCenter, 200, 100);
-    // const auto innerShape = RectF(Arg::center = innerShapeCenter, 200, 100);
-    SaturatedLinework linework(innerShape);
+    const Vec2 targetShapeCenter(800, 400);
+    const auto targetShape = Ellipse(targetShapeCenter, 200, 100);
+    // Rectにする場合
+    // const auto targetShape = RectF(Arg::center = targetShapeCenter, 300, 200);
+    SaturatedLinework linework(targetShape);
 
+    // シード値を設定したいとき
     // linework.SetSeed(0);
 
+    // Lineworkで設定される初期値を取得
     lineCount.value = static_cast<int>(linework.getLineCount());
     offsetRange.value = linework.getOffsetRange();
     minThick.value = linework.getMinThickness();
     maxThick.value = linework.getMaxThickness();
 
-    const uint64 seed = linework.getSeed();
-    Print(U"seed:", seed);
+    // シード値を表示
+    Print(U"seed:", linework.getSeed());
 
     lineCount.max = 300;
     offsetRange.max = 400;
@@ -38,7 +42,7 @@ void Main()
     maxThick.max = 120;
 
     // Slider GUIのサイズ
-    constexpr int32 label = 130;
+    constexpr int32 label = 150;
     constexpr int32 slider = 250;
 
     // GUIのベース座標
@@ -53,17 +57,19 @@ void Main()
 
     while (System::Update())
     {
+        //ウインドウ本体
         virtualWindow.draw(windowColor);
 
         //集中線を描画
         linework.draw(lineColor);
 
+        //枠
         virtualWindow.drawFrame(0, 100, frameColor);
 
-        font(U"集中線").drawAt(linework.getTargetShape().center, Palette::Black);
+        font(U"集中線").drawAt(Geometry2D::Center(linework.getTargetShape()), Palette::Black);
 
-        SimpleGUI::Slider(U"Num{:.0f}"_fmt(lineCount.value), lineCount.value, lineCount.min, lineCount.max, Vec2(x, y), label, slider);
-        SimpleGUI::Slider(U"PosRand{:.0f}"_fmt(offsetRange.value), offsetRange.value, offsetRange.min, offsetRange.max, Vec2(x, y + 40 * 1), label, slider);
+        SimpleGUI::Slider(U"LineCount{:.0f}"_fmt(lineCount.value), lineCount.value, lineCount.min, lineCount.max, Vec2(x, y), label, slider);
+        SimpleGUI::Slider(U"RandomPos{:.0f}"_fmt(offsetRange.value), offsetRange.value, offsetRange.min, offsetRange.max, Vec2(x, y + 40 * 1), label, slider);
 
         if (SimpleGUI::Slider(U"MinThick{:.0f}"_fmt(minThick.value), minThick.value, minThick.min, minThick.max, Vec2(x, y + 40 * 2), label, slider))
         {
@@ -75,10 +81,13 @@ void Main()
             minThick.value = Min(maxThick.value, minThick.value);
         }
 
-        linework.setLineCount(static_cast<int>(lineCount.value));
-        linework.setOffsetRange(offsetRange.value);
-        linework.setThickness(minThick.value, maxThick.value);
+        
+        //メソッドチェーンで設定できる
+        linework.setLineCount(static_cast<int>(lineCount.value))
+            .setOffsetRange(offsetRange.value)
+            .setThickness(minThick.value, maxThick.value);
 
+        // シード値を変える
         if (SimpleGUI::Button(U"SeedReset", Vec2(x + 160, y + 40 * 4)))
         {
             ClearPrint();
@@ -86,6 +95,7 @@ void Main()
             Print(U"seed:",linework.getSeed());
         }
 
+        // 値をランダムにセット
         if (SimpleGUI::Button(U"RandomSet", Vec2(x, y + 40 * 4)))
         {
             lineCount.value = Random(lineCount.min, lineCount.max);
@@ -98,11 +108,14 @@ void Main()
                 .setOffsetRange(static_cast<double>(offsetRange.value));
         }
 
+        // 再生成
         if (SimpleGUI::Button(U"Generate", Vec2(x, y + 40 * 5)))
         {
             linework.generate();
         }
 
+        // 色変更GUI
+        
         const int width = 160;
         Rect(x, y + (int)(40 * 6.35), width * 3, 27 * 1).draw(Palette::White).drawFrame(0, 1, Palette::Black);
 
